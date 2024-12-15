@@ -16,4 +16,10 @@ std::vector<std::vector<int>> buildTensorProductParityCheck(
     const std::vector<std::vector<int>>& H2  // m2 x n2
 );
 
+/*
+ * Build the tensor product codeword from two codewords c1 and c2.
+ * The result is a codeword of length n1 * n2.
+ */
+vector<int> buildTensorProductCodeword(const vector<int>& c1, const vector<int>& c2);
+
 #endif // TENSOR_PRODUCT_HPP

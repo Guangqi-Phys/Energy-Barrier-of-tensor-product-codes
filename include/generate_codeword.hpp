@@ -27,6 +27,14 @@ gaussianEliminationGF2(const vector<vector<int>>& H_in);
  */
 vector<string> computeAllCodewordsGF2(const vector<vector<int>>& H);
 
+
+/*
+ * Find a single non-trivial codeword in the null space of H
+ * Input: H is an ℓ x n parity-check matrix over GF(2)
+ * Output: A vector representing a non-zero codeword, or empty vector if none exists
+ */
+vector<int> findSingleCodeword(const vector<vector<int>>& H);
+
 /*
  * Compute the Hamming weight (number of 1s) of a binary string
  */

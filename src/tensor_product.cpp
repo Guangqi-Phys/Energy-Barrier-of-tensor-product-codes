@@ -65,6 +65,31 @@ vector<vector<int>> buildTensorProductParityCheck(
     return H3;
 }
 
+
+/*
+ * Build the tensor product codeword from two codewords c1 and c2.
+ * The result is a codeword of length n1 * n2.
+ */
+
+vector<int> buildTensorProductCodeword(const vector<int>& c1, const vector<int>& c2) {
+    // Get lengths of input codewords
+    int n1 = c1.size();
+    int n2 = c2.size();
+    
+    // The tensor product codeword will have length n1 * n2
+    vector<int> result(n1 * n2);
+    
+    // Build tensor product codeword
+    for (int i = 0; i < n1; i++) {
+        for (int j = 0; j < n2; j++) {
+            // Tensor product is the multiplication of corresponding elements
+            result[i * n2 + j] = c1[i] * c2[j];
+        }
+    }
+    
+    return result;
+}
+
 // ------------------- Example usage -------------------
 // int main(){
 //     // Example H1: 2 x 3

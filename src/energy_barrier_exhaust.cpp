@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <string>
 #include <algorithm>
+#include <functional>
+#include <climits>
 using namespace std;
 
 /*

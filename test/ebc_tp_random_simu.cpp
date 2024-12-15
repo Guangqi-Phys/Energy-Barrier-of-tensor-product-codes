@@ -46,54 +46,54 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
     if (d1 <= 0 || d2 <= 0) return false;  // Invalid codes
 
     // Get a non-zero codeword for each code
-    vector<string> codewords1 = computeAllCodewordsGF2(H1);
-    vector<string> codewords2 = computeAllCodewordsGF2(H2);
+    vector<int> codewords1 = findSingleCodeword(H1);
+    vector<int> codewords2 = findSingleCodeword(H2);
     
     // Convert first non-zero codeword to vector<int>
-    vector<int> c1, c2;
-    for (const string& cw : codewords1) {
-        if (hammingWeight(cw) > 0) {
-            c1.resize(cw.length());
-            for (size_t i = 0; i < cw.length(); ++i) c1[i] = cw[i] - '0';
-            break;
-        }
-    }
-    for (const string& cw : codewords2) {
-        if (hammingWeight(cw) > 0) {
-            c2.resize(cw.length());
-            for (size_t i = 0; i < cw.length(); ++i) c2[i] = cw[i] - '0';
-            break;
-        }
-    }
-    if (c1.empty() || c2.empty()) return false;
+    // vector<int> c1, c2;
+    // for (const string& cw : codewords1) {
+    //     if (hammingWeight(cw) > 0) {
+    //         c1.resize(cw.length());
+    //         for (size_t i = 0; i < cw.length(); ++i) c1[i] = cw[i] - '0';
+    //         break;
+    //     }
+    // }
+    // for (const string& cw : codewords2) {
+    //     if (hammingWeight(cw) > 0) {
+    //         c2.resize(cw.length());
+    //         for (size_t i = 0; i < cw.length(); ++i) c2[i] = cw[i] - '0';
+    //         break;
+    //     }
+    // }
+    // if (c1.empty() || c2.empty()) return false;
 
     // Compute energy barriers
-    E1 = computeEnergyBarrier(H1, c1);
-    E2 = computeEnergyBarrier(H2, c2);
+    E1 = computeEnergyBarrier(H1, codewords1);
+    E2 = computeEnergyBarrier(H2, codewords2);
     if (E1 < 0 || E2 < 0) return false;  // Invalid barriers
 
     // Compute tensor product
     vector<vector<int>> H3 = buildTensorProductParityCheck(H1, H2);
     
     // Get a non-zero codeword for H3
-    vector<string> codewords3 = computeAllCodewordsGF2(H3);
-    vector<int> c3;
-    for (const string& cw : codewords3) {
-        if (hammingWeight(cw) > 0) {
-            c3.resize(cw.length());
-            for (size_t i = 0; i < cw.length(); ++i) c3[i] = cw[i] - '0';
-            break;
-        }
-    }
-    if (c3.empty()) return false;
+    vector<int> codewords3 = buildTensorProductCodeword(codewords1, codewords2);
+    // vector<int> c3;
+    // for (const string& cw : codewords3) {
+    //     if (hammingWeight(cw) > 0) {
+    //         c3.resize(cw.length());
+    //         for (size_t i = 0; i < cw.length(); ++i) c3[i] = cw[i] - '0';
+    //         break;
+    //     }
+    // }
+    if (codewords3.empty()) return false;
 
     // Compute energy barrier for tensor product code
-    E3 = computeEnergyBarrierExhaustive(H3, c3);
+    E3 = computeEnergyBarrier(H3, codewords3);
     return (E3 >= 0);
 }
 
 int main() {
-    const int nn = 10;  // Number of simulations
+    const int nn = 20;  // Number of simulations
     bool foundCounterexample = false;
 
     cout << "Starting simulation with " << nn << " iterations...\n";
@@ -104,13 +104,13 @@ int main() {
         // Random dimensions in range [6,9]
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dim_dist(3, 5);
+        uniform_int_distribution<> dim_dist(6, 9);
         
         int m1 = dim_dist(gen);
         int n1 = dim_dist(gen);
         int m2 = dim_dist(gen);
         int n2 = dim_dist(gen);
-        const int w = 2;
+        const int w = 3;
 
         vector<vector<int>> H1, H2;
         int d1, E1, d2, E2, E3;

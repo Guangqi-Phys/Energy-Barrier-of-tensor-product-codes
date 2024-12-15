@@ -84,6 +84,60 @@ gaussianEliminationGF2(const vector<vector<int>>& H_in) {
 }
 
 /*
+ * Find a single non-trivial codeword in the null space of H
+ * Input: H is an ℓ x n parity-check matrix over GF(2)
+ * Output: A vector representing a non-zero codeword, or empty vector if none exists
+ */
+vector<int> findSingleCodeword(const vector<vector<int>>& H) {
+    if (H.empty()) {
+        return {};
+    }
+
+    int cols = (int)H[0].size();
+
+    // 1) Compute RREF of H
+    auto [RREF, pivotCols, rank] = gaussianEliminationGF2(H);
+
+    // If rank equals number of columns, only the zero vector exists
+    if (rank == cols) {
+        return {};
+    }
+
+    // Find a free column (first column that's not a pivot)
+    vector<bool> isPivot(cols, false);
+    for (int pc : pivotCols) {
+        isPivot[pc] = true;
+    }
+    
+    int freeCol = -1;
+    for (int c = 0; c < cols; c++) {
+        if (!isPivot[c]) {
+            freeCol = c;
+            break;
+        }
+    }
+
+    // Create a codeword by setting the free variable to 1
+    vector<int> codeword(cols, 0);
+    codeword[freeCol] = 1;
+
+    // Solve for pivot variables using RREF
+    for (int pivot_i = 0; pivot_i < (int)pivotCols.size(); pivot_i++) {
+        int pcol = pivotCols[pivot_i];
+        // The pivot is in row pivot_i
+        int sum = 0;
+        for (int c = 0; c < cols; c++) {
+            if (c != pcol && RREF[pivot_i][c] == 1) {
+                sum ^= codeword[c];
+            }
+        }
+        codeword[pcol] = sum;
+    }
+
+    return codeword;
+}
+
+/*
  * ComputeAllCodewordsGF2(H):
  *   Input: H is an ℓ x n parity-check matrix over GF(2).
  *   Output: A vector of binary strings, each representing one codeword in the null space of H.
