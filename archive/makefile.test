@@ -1,0 +1,18 @@
+# Makefile
+
+CXX      = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O3
+
+# The default target built when you run 'make'
+all: generate_codeword energy_barrier
+
+# Link/compile the program from a single source file
+generate_codeword: ./src/generate_codeword.cpp
+	$(CXX) $(CXXFLAGS) ./src/generate_codeword.cpp -o generate_codeword
+
+energy_barrier: ./src/energy_barrier.cpp
+	$(CXX) $(CXXFLAGS) ./src/energy_barrier.cpp -o energy_barrier
+
+# Optional clean target
+clean:
+	rm -f generate_codeword energy_barrier
