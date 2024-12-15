@@ -3,6 +3,8 @@
 #include <tuple>
 #include <algorithm>
 #include <string>
+#include <random>
+#include <numeric>
 using namespace std;
 
 // Helper function to count 1-bits in an integer (mod 2)
@@ -213,6 +215,88 @@ int computeMinimumDistance(const vector<vector<int>>& H) {
     }
     
     return minWeight;  // Will be -1 if only zero codeword exists
+}
+
+/*
+ * Generate a random m×n parity-check matrix with weight constraints
+ * Parameters:
+ * - m: number of rows
+ * - n: number of columns
+ * - w: maximum weight (number of 1's) per row and column
+ * Returns: m×n matrix over GF(2) with ≤w ones per row/column
+ */
+vector<vector<int>> generateRandomParityCheckMatrix(int m, int n, int w) {
+    // Initialize matrix with zeros
+    vector<vector<int>> H(m, vector<int>(n, 0));
+    
+    // Random number generator
+    random_device rd;
+    mt19937 gen(rd());
+    
+    // For each row
+    for (int i = 0; i < m; i++) {
+        // Generate random weight between 1 and w for this row
+        uniform_int_distribution<> weight_dist(1, min(w, n));
+        int row_weight = weight_dist(gen);
+        
+        // Generate row_weight random column positions
+        vector<int> available_cols(n);
+        iota(available_cols.begin(), available_cols.end(), 0); // Fill with 0,1,2,...,n-1
+        
+        // Check column weights before placing 1's
+        vector<int> valid_cols;
+        for (int col : available_cols) {
+            // Count 1's in this column
+            int col_weight = 0;
+            for (int r = 0; r < m; r++) {
+                col_weight += H[r][col];
+            }
+            if (col_weight < w) {
+                valid_cols.push_back(col);
+            }
+        }
+        
+        // If no valid columns available, skip this row
+        if (valid_cols.empty()) continue;
+        
+        // Shuffle and select positions
+        shuffle(valid_cols.begin(), valid_cols.end(), gen);
+        int actual_weight = min(row_weight, (int)valid_cols.size());
+        
+        // Place 1's in selected positions
+        for (int j = 0; j < actual_weight; j++) {
+            H[i][valid_cols[j]] = 1;
+        }
+    }
+    
+    return H;
+}
+
+// Helper function to verify matrix constraints
+bool verifyMatrixConstraints(const vector<vector<int>>& H, int w) {
+    if (H.empty()) return false;
+    int m = H.size();
+    int n = H[0].size();
+    
+    // Check row weights
+    for (int i = 0; i < m; i++) {
+        int row_weight = 0;
+        for (int j = 0; j < n; j++) {
+            row_weight += H[i][j];
+        }
+        if (row_weight > w) return false;
+    }
+    
+    // Check column weights
+    for (int j = 0; j < n; j++) {
+        int col_weight = 0;
+        for (int i = 0; i < m; i++) {
+            col_weight += H[i][j];
+        }
+        if (col_weight > w) return false;
+    }
+    
+    return true;
 }
 
 // Example main

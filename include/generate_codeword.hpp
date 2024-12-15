@@ -41,4 +41,23 @@ int hammingWeight(const string& s);
  */
 int computeMinimumDistance(const vector<vector<int>>& H);
 
+/*
+ * Generate a random m×n parity-check matrix with weight constraints
+ * Parameters:
+ * - m: number of rows
+ * - n: number of columns
+ * - w: maximum weight (number of 1's) per row and column
+ * Returns: m×n matrix over GF(2) with ≤w ones per row/column
+ */
+vector<vector<int>> generateRandomParityCheckMatrix(int m, int n, int w);
+
+/*
+ * Verify that a matrix satisfies the weight constraints
+ * Parameters:
+ * - H: the matrix to verify
+ * - w: maximum allowed weight per row and column
+ * Returns: true if matrix satisfies constraints, false otherwise
+ */
+bool verifyMatrixConstraints(const vector<vector<int>>& H, int w);
+
 #endif // GENERATE_CODEWORD_HPP

@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 #include <climits>
+#include <random>
+#include <set>
 
 // Helper function to convert string codeword to vector<int>
 vector<int> stringToVector(const string& s) {
@@ -28,6 +30,76 @@ void printMatrix(const vector<vector<int>>& matrix, const string& name) {
         cout << endl;
     }
     cout << endl;
+}
+
+// Generate a random sparse parity check matrix with weight constraints
+vector<vector<int>> generateRandomSparseH(int m, int n, int w) {
+    // Initialize random number generator
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(0, n-1);
+    
+    vector<vector<int>> H(m, vector<int>(n, 0));
+    vector<int> rowWeights(m, 0);
+    vector<int> colWeights(n, 0);
+    
+    // For each row
+    for(int i = 0; i < m; i++) {
+        // Keep track of columns we've already set in this row
+        set<int> usedCols;
+        
+        // Try to place w ones in this row
+        int attempts = 0;
+        while(rowWeights[i] < w && attempts < n*2) { // n*2 attempts to avoid infinite loops
+            int col = dis(gen);
+            
+            // Check if this column is already used in this row
+            if(usedCols.count(col) > 0) {
+                attempts++;
+                continue;
+            }
+            
+            // Check if adding a 1 here would exceed column weight constraint
+            if(colWeights[col] >= w) {
+                attempts++;
+                continue;
+            }
+            
+            // Place a 1 here
+            H[i][col] = 1;
+            usedCols.insert(col);
+            rowWeights[i]++;
+            colWeights[col]++;
+        }
+    }
+    
+    return H;
+}
+
+// Helper function to verify matrix constraints
+bool verifyMatrixConstraints(const vector<vector<int>>& H, int w) {
+    int m = H.size();
+    int n = H[0].size();
+    
+    // Check row weights
+    for(int i = 0; i < m; i++) {
+        int rowWeight = 0;
+        for(int j = 0; j < n; j++) {
+            rowWeight += H[i][j];
+        }
+        if(rowWeight > w) return false;
+    }
+    
+    // Check column weights
+    for(int j = 0; j < n; j++) {
+        int colWeight = 0;
+        for(int i = 0; i < m; i++) {
+            colWeight += H[i][j];
+        }
+        if(colWeight > w) return false;
+    }
+    
+    return true;
 }
 
 int main() {
@@ -160,6 +232,20 @@ int main() {
     cout << "H1: distance = " << d1 << ", energy barrier = " << minBarrier1 << endl;
     cout << "H2: distance = " << d2 << ", energy barrier = " << minBarrier2 << endl;
     cout << "H3 (tensor product): distance = " << d3 << ", energy barrier = " << minBarrier3 << endl;
+
+    // You can test the new functions by adding this to main():
+    /*
+        cout << "\n=== Testing Random Sparse Matrix Generation ===\n";
+        int m = 6;    // number of rows
+        int n = 12;   // number of columns
+        int w = 3;    // maximum weight constraint
+        
+        vector<vector<int>> Hsparse = generateRandomSparseH(m, n, w);
+        printMatrix(Hsparse, "Random Sparse H");
+        
+        bool constraintsSatisfied = verifyMatrixConstraints(Hsparse, w);
+        cout << "Weight constraints satisfied: " << (constraintsSatisfied ? "Yes" : "No") << "\n";
+    */
 
     return 0;
 }
