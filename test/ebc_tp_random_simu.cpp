@@ -68,8 +68,8 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
     if (c1.empty() || c2.empty()) return false;
 
     // Compute energy barriers
-    E1 = computeEnergyBarrierExhaustive(H1, c1);
-    E2 = computeEnergyBarrierExhaustive(H2, c2);
+    E1 = computeEnergyBarrier(H1, c1);
+    E2 = computeEnergyBarrier(H2, c2);
     if (E1 < 0 || E2 < 0) return false;  // Invalid barriers
 
     // Compute tensor product
@@ -93,7 +93,7 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
 }
 
 int main() {
-    const int nn = 2;  // Number of simulations
+    const int nn = 10;  // Number of simulations
     bool foundCounterexample = false;
 
     cout << "Starting simulation with " << nn << " iterations...\n";
@@ -104,7 +104,7 @@ int main() {
         // Random dimensions in range [6,9]
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dim_dist(3, 6);
+        uniform_int_distribution<> dim_dist(3, 5);
         
         int m1 = dim_dist(gen);
         int n1 = dim_dist(gen);
