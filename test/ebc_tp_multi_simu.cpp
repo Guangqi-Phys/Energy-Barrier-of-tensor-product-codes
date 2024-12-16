@@ -93,7 +93,7 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
 }
 
 int main() {
-    const int nn = 100;  // Number of simulations
+    const int nn = 200;  // Number of simulations
     bool foundCounterexample = false;
 
     cout << "Starting simulation with " << nn << " iterations...\n";
