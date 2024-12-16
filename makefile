@@ -15,7 +15,7 @@ SRC_FILES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES = $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
 # Test files
-TEST_TARGETS = ebc ebc_tp_random_simu
+TEST_TARGETS = ebc ebc_tp_multi_simu
 
 # Default target
 all: $(TEST_TARGETS)
@@ -24,7 +24,7 @@ all: $(TEST_TARGETS)
 ebc: $(OBJ_FILES) $(TEST_DIR)/ebc.cpp
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-ebc_tp_random_simu: $(OBJ_FILES) $(TEST_DIR)/ebc_tp_random_simu.cpp
+ebc_tp_multi_simu: $(OBJ_FILES) $(TEST_DIR)/ebc_tp_multi_simu.cpp
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 # Compiling source files

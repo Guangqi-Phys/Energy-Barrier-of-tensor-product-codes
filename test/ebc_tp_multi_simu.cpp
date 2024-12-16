@@ -93,7 +93,7 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
 }
 
 int main() {
-    const int nn = 20;  // Number of simulations
+    const int nn = 100;  // Number of simulations
     bool foundCounterexample = false;
 
     cout << "Starting simulation with " << nn << " iterations...\n";
@@ -104,7 +104,7 @@ int main() {
         // Random dimensions in range [6,9]
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dim_dist(6, 9);
+        uniform_int_distribution<> dim_dist(5, 6);
         
         int m1 = dim_dist(gen);
         int n1 = dim_dist(gen);
