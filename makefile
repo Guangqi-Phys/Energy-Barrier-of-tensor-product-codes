@@ -1,8 +1,9 @@
 # Makefile
 
-# Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++17 -Wall -I./include -O3
+# Compiler and flags for macOS
+CXX = clang++
+CXXFLAGS = -std=c++17 -Wall -I./include -O3 -Xpreprocessor -fopenmp -I/opt/homebrew/opt/libomp/include
+LDFLAGS = -L/opt/homebrew/opt/libomp/lib -lomp
 
 # Directories
 SRC_DIR = src
@@ -22,10 +23,10 @@ all: $(TEST_TARGETS)
 
 # Linking the test executables
 ebc: $(OBJ_FILES) $(TEST_DIR)/ebc.cpp
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 ebc_tp_multi_simu: $(OBJ_FILES) $(TEST_DIR)/ebc_tp_multi_simu.cpp
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Compiling source files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INCLUDE_DIR)/%.hpp

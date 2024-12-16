@@ -7,6 +7,7 @@
 #include <random>
 #include <chrono>
 #include <iomanip>
+#include "/opt/homebrew/opt/libomp/include/omp.h"
 
 
 using namespace std;
@@ -146,106 +147,127 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
 int main() {
     const int nn = 100;  // Number of simulations
     bool foundCounterexample = false;
+    int successCount = 0;  // Add this counter
 
     cout << "Starting simulation with " << nn << " iterations...\n";
 
-    // Use a single random generator instance
+    // Use thread-local random generators
     random_device rd;
-    mt19937 gen(rd());
-    // Reduce matrix dimensions to 3-4 initially
-    uniform_int_distribution<> dim_dist(4, 7);  // Reduced from (5,6)
+    
+    // Create a mutex for synchronized console output
+    #pragma omp declare reduction(|| : bool : omp_out = omp_out || omp_in)
 
-    for (int iter = 0; iter < nn; ++iter) {
-        showProgress(iter, nn);
+    #pragma omp parallel reduction(+:successCount)  // Add reduction for successCount
+    {
+        mt19937 local_gen(rd() + omp_get_thread_num()); // Different seed for each thread
+        uniform_int_distribution<> dim_dist(4, 7);
 
-        int m1 = dim_dist(gen);
-        int n1 = dim_dist(gen);
-        int m2 = dim_dist(gen);
-        int n2 = dim_dist(gen);
-        const int w = 3;  // Reduced from 3 to 2
+        #pragma omp for reduction(||:foundCounterexample)
+        for (int iter = 0; iter < nn; ++iter) {
+            // Synchronize progress bar updates
+            #pragma omp critical
+            {
+                showProgress(iter, nn);
+            }
 
-        vector<vector<int>> H1, H2, H3;
-        vector<int> codewords1, codewords2, codewords3;
-        int d1, E1, d2, E2, E3;
+            int m1 = dim_dist(local_gen);
+            int n1 = dim_dist(local_gen);
+            int m2 = dim_dist(local_gen);
+            int n2 = dim_dist(local_gen);
+            const int w = 3;
 
-        // Add timeout mechanism
-        auto start = chrono::steady_clock::now();
-        bool success = false;
-        
-        try {
-            success = runSingleSimulation(m1, n1, m2, n2, w, H1, H2, H3, 
-                                        d1, E1, d2, E2, E3,
-                                        codewords1, codewords2, codewords3);
+            vector<vector<int>> H1, H2, H3;
+            vector<int> codewords1, codewords2, codewords3;
+            int d1, E1, d2, E2, E3;
+
+            auto start = chrono::steady_clock::now();
+            bool success = false;
             
-            auto current = chrono::steady_clock::now();
-            if (chrono::duration_cast<chrono::seconds>(current - start).count() > 5) {
-                cout << "\nIteration " << iter << " timed out, skipping...\n";
+            try {
+                success = runSingleSimulation(m1, n1, m2, n2, w, H1, H2, H3, 
+                                            d1, E1, d2, E2, E3,
+                                            codewords1, codewords2, codewords3);
+                
+                auto current = chrono::steady_clock::now();
+                if (chrono::duration_cast<chrono::seconds>(current - start).count() > 5) {
+                    #pragma omp critical
+                    {
+                        cout << "\nIteration " << iter << " timed out, skipping...\n";
+                    }
+                    continue;
+                }
+            } catch (const exception& e) {
+                #pragma omp critical
+                {
+                    cout << "\nError in iteration " << iter << ": " << e.what() << ", skipping...\n";
+                }
                 continue;
             }
-        } catch (const exception& e) {
-            cout << "\nError in iteration " << iter << ": " << e.what() << ", skipping...\n";
-            continue;
-        }
 
-        if (success) {
-            int min_bound = min(d1 * E2, E1 * d2);
-            
-            if (E3 < min_bound - 2) {
-                foundCounterexample = true;
-                cout << "\nFound counterexample in iteration " << iter + 1 << ":\n";
-                cout << "H1: " << m1 << "x" << n1 << " matrix, d1=" << d1 << ", E1=" << E1 << "\n";
-                // Print H1
-                cout << "H1 matrix:\n";
-                for (const auto& row : H1) {
-                    for (int val : row) {
-                        cout << val << " ";
+            if (success) {
+                successCount++;  // Increment on successful simulation
+                int min_bound = min(d1 * E2, E1 * d2);
+                
+                if (E3 < min_bound - 2) {
+                    foundCounterexample = true;
+                    #pragma omp critical
+                    {
+                        cout << "\nFound counterexample in iteration " << iter + 1 << ":\n";
+                        cout << "H1: " << m1 << "x" << n1 << " matrix, d1=" << d1 << ", E1=" << E1 << "\n";
+                        // Print H1
+                        cout << "H1 matrix:\n";
+                        for (const auto& row : H1) {
+                            for (int val : row) {
+                                cout << val << " ";
+                            }
+                            cout << "\n";
+                        }
+                        cout << "Codeword 1: ";
+                        for (int val : codewords1) {
+                            cout << val << " ";
+                        }
+                        cout << "\n\n";
+
+                        cout << "H2: " << m2 << "x" << n2 << " matrix, d2=" << d2 << ", E2=" << E2 << "\n";
+                        // Print H2
+                        cout << "H2 matrix:\n";
+                        for (const auto& row : H2) {
+                            for (int val : row) {
+                                cout << val << " ";
+                            }
+                            cout << "\n";
+                        }
+                        cout << "Codeword 2: ";
+                        for (int val : codewords2) {
+                            cout << val << " ";
+                        }
+                        cout << "\n\n";
+
+                        cout << "H3 (tensor product): E3=" << E3 << "\n";
+                        // Print H3
+                        cout << "H3 matrix:\n";
+                        for (const auto& row : H3) {
+                            for (int val : row) {
+                                cout << val << " ";
+                            }
+                            cout << "\n";
+                        }
+                        cout << "Codeword 3: ";
+                        for (int val : codewords3) {
+                            cout << val << " ";
+                        }
+                        cout << "\n\n";
+
+                        cout << "min(d1*E2, E1*d2)=" << min_bound << "\n";
                     }
-                    cout << "\n";
+                    #pragma omp cancel for
                 }
-                cout << "Codeword 1: ";
-                for (int val : codewords1) {
-                    cout << val << " ";
-                }
-                cout << "\n\n";
-
-                cout << "H2: " << m2 << "x" << n2 << " matrix, d2=" << d2 << ", E2=" << E2 << "\n";
-                // Print H2
-                cout << "H2 matrix:\n";
-                for (const auto& row : H2) {
-                    for (int val : row) {
-                        cout << val << " ";
-                    }
-                    cout << "\n";
-                }
-                cout << "Codeword 2: ";
-                for (int val : codewords2) {
-                    cout << val << " ";
-                }
-                cout << "\n\n";
-
-                cout << "H3 (tensor product): E3=" << E3 << "\n";
-                // Print H3
-                cout << "H3 matrix:\n";
-                for (const auto& row : H3) {
-                    for (int val : row) {
-                        cout << val << " ";
-                    }
-                    cout << "\n";
-                }
-                cout << "Codeword 3: ";
-                for (int val : codewords3) {
-                    cout << val << " ";
-                }
-                cout << "\n\n";
-
-                cout << "min(d1*E2, E1*d2)=" << min_bound << "\n";
-                break;
             }
         }
     }
 
-    showProgress(nn, nn);  // Complete the progress bar
-    cout << "\n\n";
+    showProgress(nn, nn);
+    cout << "\n\nSuccessful simulations: " << successCount << "/" << nn << "\n";
 
     if (!foundCounterexample) {
         cout << "For all simulations, E3 >= min(d1*E2, E1*d2) was satisfied.\n";
