@@ -27,6 +27,12 @@ gaussianEliminationGF2(const vector<vector<int>>& H_in);
  */
 vector<string> computeAllCodewordsGF2(const vector<vector<int>>& H);
 
+/* 
+ * Compute the rank of a matrix over GF(2)
+ * Input: mat is an m x n matrix over GF(2)
+ * Output: The rank of mat over GF(2)
+*/
+int computeRankGF2(vector<vector<int>>& mat);
 
 /*
  * Find a single non-trivial codeword in the null space of H

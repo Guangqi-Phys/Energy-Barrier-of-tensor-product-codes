@@ -90,7 +90,7 @@ gaussianEliminationGF2(const vector<vector<int>>& H_in) {
  */
 vector<int> findSingleCodeword(const vector<vector<int>>& H) {
     if (H.empty()) {
-        return {};
+        return vector<int>(0, 0);  // Return zero vector of size 0
     }
 
     int cols = (int)H[0].size();
@@ -100,7 +100,7 @@ vector<int> findSingleCodeword(const vector<vector<int>>& H) {
 
     // If rank equals number of columns, only the zero vector exists
     if (rank == cols) {
-        return {};
+        return vector<int>(cols, 0);  // Return zero vector of size cols
     }
 
     // Find a free column (first column that's not a pivot)
@@ -271,60 +271,162 @@ int computeMinimumDistance(const vector<vector<int>>& H) {
     return minWeight;  // Will be -1 if only zero codeword exists
 }
 
-/*
- * Generate a random m×n parity-check matrix with weight constraints
- * Parameters:
- * - m: number of rows
- * - n: number of columns
- * - w: maximum weight (number of 1's) per row and column
- * Returns: m×n matrix over GF(2) with ≤w ones per row/column
- */
+/* 
+ * Compute the rank of a matrix over GF(2)
+ * Input: mat is an m x n matrix over GF(2)
+ * Output: The rank of mat over GF(2)
+*/
+int computeRankGF2(vector<vector<int>>& mat) {
+    int m = (int)mat.size();
+    if (m == 0) return 0;
+    int n = (int)mat[0].size();
+
+    int rank = 0;
+    int row = 0;
+
+    for (int col = 0; col < n && row < m; col++) {
+        // Find pivot row with a 1 in this column, starting from 'row'
+        int pivot = row;
+        while (pivot < m && mat[pivot][col] == 0) {
+            pivot++;
+        }
+        // If no pivot in this column, continue to next column
+        if (pivot == m) continue;
+
+        // Swap pivot row with current row if needed
+        if (pivot != row) {
+            swap(mat[pivot], mat[row]);
+        }
+
+        // Eliminate below and above
+        for (int r = 0; r < m; r++) {
+            if (r != row && mat[r][col] == 1) {
+                // XOR row 'r' with row 'row'
+                for (int c = col; c < n; c++) {
+                    mat[r][c] ^= mat[row][c];
+                }
+            }
+        }
+        row++;
+        rank++;
+    }
+    return rank;
+}
+
+// Modified function to generate a random parity check matrix H (m x n)
+// with each row having at least 2 ones, and rank(H) < n over GF(2).
 vector<vector<int>> generateRandomParityCheckMatrix(int m, int n, int w) {
-    // Initialize matrix with zeros
-    vector<vector<int>> H(m, vector<int>(n, 0));
-    
+    // Validate input parameters
+    if (w < 2) w = 2;
+    if (n < 2) throw invalid_argument("n must be at least 2");
+
     // Random number generator
     random_device rd;
     mt19937 gen(rd());
+
+    const int MAX_ATTEMPTS = 100; // Maximum number of complete matrix generation attempts
     
-    // For each row
-    for (int i = 0; i < m; i++) {
-        // Generate random weight between 1 and w for this row
-        uniform_int_distribution<> weight_dist(1, min(w, n));
-        int row_weight = weight_dist(gen);
-        
-        // Generate row_weight random column positions
-        vector<int> available_cols(n);
-        iota(available_cols.begin(), available_cols.end(), 0); // Fill with 0,1,2,...,n-1
-        
-        // Check column weights before placing 1's
-        vector<int> valid_cols;
-        for (int col : available_cols) {
-            // Count 1's in this column
-            int col_weight = 0;
-            for (int r = 0; r < m; r++) {
-                col_weight += H[r][col];
+    for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        // Initialize matrix with zeros
+        vector<vector<int>> H(m, vector<int>(n, 0));
+        bool success = true;
+
+        // For each row
+        for (int i = 0; i < m; i++) {
+            const int ROW_ATTEMPTS = 10; // Maximum attempts per row
+            bool row_success = false;
+
+            for (int row_attempt = 0; row_attempt < ROW_ATTEMPTS; row_attempt++) {
+                // Generate random weight between 2 and w for this row
+                uniform_int_distribution<> weight_dist(2, min(w, n));
+                int row_weight = weight_dist(gen);
+
+                // Check which columns are still valid (i.e., have column weight < w)
+                vector<int> valid_cols;
+                valid_cols.reserve(n);
+                for (int col = 0; col < n; col++) {
+                    int col_weight = 0;
+                    for (int r = 0; r < i; r++) {
+                        col_weight += H[r][col];
+                    }
+                    if (col_weight < w) {
+                        valid_cols.push_back(col);
+                    }
+                }
+
+                // If not enough valid columns available for minimum weight of 2,
+                // try again with this row
+                if ((int)valid_cols.size() < 2) {
+                    continue;
+                }
+
+                // Shuffle valid columns
+                shuffle(valid_cols.begin(), valid_cols.end(), gen);
+
+                // Clear current row
+                fill(H[i].begin(), H[i].end(), 0);
+
+                // Actual number of 1s to place in this row
+                int actual_weight = min(row_weight, (int)valid_cols.size());
+                actual_weight = max(2, actual_weight);  // Ensure at least 2 ones
+
+                // Place 1's in the selected positions
+                for (int j = 0; j < actual_weight; j++) {
+                    H[i][valid_cols[j]] = 1;
+                }
+
+                row_success = true;
+                break;
             }
-            if (col_weight < w) {
-                valid_cols.push_back(col);
+
+            if (!row_success) {
+                success = false;
+                break;
             }
         }
-        
-        // If no valid columns available, skip this row
-        if (valid_cols.empty()) continue;
-        
-        // Shuffle and select positions
-        shuffle(valid_cols.begin(), valid_cols.end(), gen);
-        int actual_weight = min(row_weight, (int)valid_cols.size());
-        
-        // Place 1's in selected positions
-        for (int j = 0; j < actual_weight; j++) {
-            H[i][valid_cols[j]] = 1;
+
+        if (success) {
+            // Ensure rank(H) < n by making the last row linearly dependent
+            vector<vector<int>> H_copy = H;
+            int r = computeRankGF2(H_copy);
+
+            if (r >= n && m > 0) {
+                // Make the last row the XOR of some random subset of preceding rows
+                fill(H[m-1].begin(), H[m-1].end(), 0);
+                
+                // Randomly select some rows to XOR
+                for (int row = 0; row < m-1; row++) {
+                    if (uniform_int_distribution<>(0, 1)(gen)) {  // 50% chance
+                        for (int col = 0; col < n; col++) {
+                            H[m-1][col] ^= H[row][col];
+                        }
+                    }
+                }
+
+                // If the resulting row has fewer than 2 ones, add ones until we have at least 2
+                int ones = count(H[m-1].begin(), H[m-1].end(), 1);
+                if (ones < 2) {
+                    vector<int> zero_positions;
+                    for (int col = 0; col < n; col++) {
+                        if (H[m-1][col] == 0) {
+                            zero_positions.push_back(col);
+                        }
+                    }
+                    shuffle(zero_positions.begin(), zero_positions.end(), gen);
+                    for (int i = 0; i < min(2 - ones, (int)zero_positions.size()); i++) {
+                        H[m-1][zero_positions[i]] = 1;
+                    }
+                }
+            }
+
+            return H;  // Return successfully generated matrix
         }
     }
-    
-    return H;
+
+    // If we get here, we failed to generate a valid matrix after MAX_ATTEMPTS
+    throw runtime_error("Failed to generate valid parity check matrix after maximum attempts");
 }
+
 
 // Helper function to verify matrix constraints
 bool verifyMatrixConstraints(const vector<vector<int>>& H, int w) {
