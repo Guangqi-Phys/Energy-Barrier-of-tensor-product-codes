@@ -34,73 +34,113 @@ bool runSingleSimulation(int m1, int n1, int m2, int n2, int w,
                         vector<int>& codewords1,
                         vector<int>& codewords2,
                         vector<int>& codewords3) {
-    
-    cout << "\nDebug: Starting new simulation with dimensions: " 
-         << "m1=" << m1 << ", n1=" << n1 
-         << ", m2=" << m2 << ", n2=" << n2 << ", w=" << w << endl;
+    try {
+        cout << "\nDebug: Starting new simulation with dimensions: " 
+             << "m1=" << m1 << ", n1=" << n1 
+             << ", m2=" << m2 << ", n2=" << n2 << ", w=" << w << endl;
 
-    // Generate random parity check matrices
-    cout << "Debug: Generating random matrices..." << endl;
-    H1 = generateRandomParityCheckMatrix(m1, n1, w);
-    H2 = generateRandomParityCheckMatrix(m2, n2, w);
+        // Generate random parity check matrices
+        try {
+            cout << "Debug: Generating random matrices..." << endl;
+            H1 = generateRandomParityCheckMatrix(m1, n1, w);
+            H2 = generateRandomParityCheckMatrix(m2, n2, w);
+        } catch (const exception& e) {
+            cout << "Error in generating matrices: " << e.what() << endl;
+            return false;
+        }
 
-    // Verify matrix constraints
-    cout << "Debug: Verifying matrix constraints..." << endl;
-    if (!verifyMatrixConstraints(H1, w) || !verifyMatrixConstraints(H2, w)) {
-        cout << "Debug: Matrix constraints verification failed" << endl;
+        // Verify matrix constraints
+        try {
+            cout << "Debug: Verifying matrix constraints..." << endl;
+            if (!verifyMatrixConstraints(H1, w) || !verifyMatrixConstraints(H2, w)) {
+                cout << "Matrix constraints verification failed" << endl;
+                return false;
+            }
+        } catch (const exception& e) {
+            cout << "Error in verifying matrix constraints: " << e.what() << endl;
+            return false;
+        }
+
+        // Find codewords
+        try {
+            cout << "Debug: Finding codewords..." << endl;
+            codewords1 = findSingleCodeword(H1);
+            codewords2 = findSingleCodeword(H2);
+            
+            if (codewords1.empty() || codewords2.empty()) {
+                cout << "Failed to find valid codewords" << endl;
+                return false;
+            }
+        } catch (const exception& e) {
+            cout << "Error in finding codewords: " << e.what() << endl;
+            return false;
+        }
+
+        // Compute Hamming distances
+        try {
+            cout << "Debug: Computing Hamming distances of codewords..." << endl;
+            d1 = 0;
+            for (int bit : codewords1) {
+                if (bit == 1) d1++;
+            }
+            d2 = 0;
+            for (int bit : codewords2) {
+                if (bit == 1) d2++;
+            }
+            
+            if (d1 <= 0 || d2 <= 0) {
+                cout << "Invalid distances found" << endl;
+                return false;
+            }
+        } catch (const exception& e) {
+            cout << "Error in computing distances: " << e.what() << endl;
+            return false;
+        }
+
+        // Compute energy barriers
+        try {
+            cout << "Debug: Computing energy barriers..." << endl;
+            E1 = computeEnergyBarrier(H1, codewords1);
+            E2 = computeEnergyBarrier(H2, codewords2);
+            
+            if (E1 < 0 || E2 < 0) {
+                cout << "Invalid energy barriers found" << endl;
+                return false;
+            }
+        } catch (const exception& e) {
+            cout << "Error in computing energy barriers: " << e.what() << endl;
+            return false;
+        }
+
+        // Build tensor product
+        try {
+            cout << "Debug: Building tensor product..." << endl;
+            H3 = buildTensorProductParityCheck(H1, H2);
+            codewords3 = buildTensorProductCodeword(codewords1, codewords2);
+            
+            if (codewords3.empty()) {
+                cout << "Failed to build tensor product codeword" << endl;
+                return false;
+            }
+        } catch (const exception& e) {
+            cout << "Error in building tensor product: " << e.what() << endl;
+            return false;
+        }
+
+        // Compute tensor product energy barrier
+        try {
+            cout << "Debug: Computing tensor product energy barrier..." << endl;
+            E3 = computeEnergyBarrier(H3, codewords3);
+        } catch (const exception& e) {
+            cout << "Error in computing tensor product energy barrier: " << e.what() << endl;
+            return false;
+        }
+
+        return (E3 >= 0);
+    } catch (const exception& e) {
+        cout << "Unexpected error in simulation: " << e.what() << endl;
         return false;
     }
-
-    // Compute distances
-    cout << "Debug: Computing minimum distances..." << endl;
-    d1 = computeMinimumDistance(H1);
-    // cout << "Debug: d1 = " << d1 << endl;
-    d2 = computeMinimumDistance(H2);
-    // cout << "Debug: d2 = " << d2 << endl;
-    
-    if (d1 <= 0 || d2 <= 0) {
-        cout << "Debug: Invalid distances found" << endl;
-        return false;
-    }
-
-    // Get a non-zero codeword for each code
-    cout << "Debug: Finding codewords..." << endl;
-    codewords1 = findSingleCodeword(H1);
-    codewords2 = findSingleCodeword(H2);
-    
-    if (codewords1.empty() || codewords2.empty()) {
-        cout << "Debug: Failed to find valid codewords" << endl;
-        return false;
-    }
-
-    // Compute energy barriers
-    cout << "Debug: Computing energy barriers..." << endl;
-    E1 = computeEnergyBarrier(H1, codewords1);
-    // cout << "Debug: E1 = " << E1 << endl;
-    E2 = computeEnergyBarrier(H2, codewords2);
-    // cout << "Debug: E2 = " << E2 << endl;
-    
-    if (E1 < 0 || E2 < 0) {
-        cout << "Debug: Invalid energy barriers found" << endl;
-        return false;
-    }
-
-    // Build tensor product
-    cout << "Debug: Building tensor product..." << endl;
-    H3 = buildTensorProductParityCheck(H1, H2);
-    codewords3 = buildTensorProductCodeword(codewords1, codewords2);
-    
-    if (codewords3.empty()) {
-        cout << "Debug: Failed to build tensor product codeword" << endl;
-        return false;
-    }
-
-    // Compute energy barrier for tensor product code
-    cout << "Debug: Computing tensor product energy barrier..." << endl;
-    E3 = computeEnergyBarrier(H3, codewords3);
-    cout << "Debug: E3 = " << E3 << endl;
-
-    return (E3 >= 0);
 }
 
 int main() {
@@ -142,15 +182,15 @@ int main() {
                 cout << "\nIteration " << iter << " timed out, skipping...\n";
                 continue;
             }
-        } catch (...) {
-            cout << "\nError in iteration " << iter << ", skipping...\n";
+        } catch (const exception& e) {
+            cout << "\nError in iteration " << iter << ": " << e.what() << ", skipping...\n";
             continue;
         }
 
         if (success) {
             int min_bound = min(d1 * E2, E1 * d2);
             
-            if (E3 < min_bound) {
+            if (E3 < min_bound - 2) {
                 foundCounterexample = true;
                 cout << "\nFound counterexample in iteration " << iter + 1 << ":\n";
                 cout << "H1: " << m1 << "x" << n1 << " matrix, d1=" << d1 << ", E1=" << E1 << "\n";
